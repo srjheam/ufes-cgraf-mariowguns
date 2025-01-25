@@ -1,11 +1,38 @@
 #include "arena.h"
+
+#include <iostream>
+
 #include "rectangle.h"
+#include "character.h"
+#include "color_rgb.h"
 
 #include "tinyxml2.h"
 
 Arena::Arena(int height) { _height = height; }
+Arena::~Arena() {
+    delete _background;
+}
 
 const int &Arena::height() const { return _height; }
+const int &Arena::width() const { return _width; }
+
+const Rectangle &Arena::background() const { return *_background; }
+const std::vector<Rectangle> &Arena::platforms() const { return _platforms; }
+const std::vector<Character> &Arena::foes() const { return _foes; }
+const Character &Arena::player() const { return _players.front(); }
+const std::vector<Character> &Arena::players() const { return _players; }
+
+void Arena::draw() const {
+    _background->draw();
+
+    for (const Rectangle &platform : _platforms)
+        platform.draw();
+
+    for (const Character &foe : _foes)
+        foe.draw();
+
+    player().draw();
+}
 
 bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
     const tinyxml2::XMLElement *svg = doc.FirstChildElement("svg");
@@ -14,7 +41,6 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
 
     float backgroundSvgX = .0;
     float backgroundSvgY = .0;
-    float backgroundSvgWidth = .0;
     float backgroundSvgHeight = .0;
 
     float backgroundSvgToWindowHeightFactor = .0;
@@ -26,19 +52,38 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
         const char *elementName = element->Name();
         
         if (strcmp(elementName, "rect") == 0 && element->Attribute("fill", "blue")) {
+            float backgroundSvgWidth = element->FloatAttribute("width");
+            backgroundSvgHeight = element->FloatAttribute("height");
             backgroundSvgX = element->FloatAttribute("x");
             backgroundSvgY = element->FloatAttribute("y");
-            backgroundSvgWidth = element->FloatAttribute("width");
-            backgroundSvgHeight = element->FloatAttribute("height");
 
             backgroundSvgToWindowHeightFactor = (float)_height / backgroundSvgHeight;
 
+            _width = backgroundSvgWidth * backgroundSvgToWindowHeightFactor;
+
             _background = new Rectangle(
-                _height,
-                _height * backgroundSvgHeight,
-                0.259f, 0.259f, 0.941f, // RGB(66, 66, 240) 
-                .0f, .0f
+                .0f, .0f,
+                _height, _width,
+                ColorRgb((uint8_t)66, 66, 240)
             );
+
+            std::cout
+                << "Found BACKGROUND"
+                << " at svg ("
+                << backgroundSvgX
+                << ", "
+                << backgroundSvgY 
+                << "), with dimensions ("
+                << backgroundSvgWidth
+                << ", "
+                << backgroundSvgHeight
+                << ")"
+                << " Transformed to (0, 0)bl with dimensions ("
+                << _width
+                << ", "
+                << _height
+                << ")"
+            << std::endl << std::endl;
 
             break;
         }
@@ -59,40 +104,82 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
             float h = element->FloatAttribute("height");
 
             // because arena's origin is (0, 0) as the instance of Background Rectangle
-            float svgToWindowX = (x - backgroundSvgX) * backgroundSvgToWindowHeightFactor;
-            float svgToWindowY = (y - backgroundSvgY - h) * backgroundSvgToWindowHeightFactor;
+            float svgToArenaX = (x - backgroundSvgX) * backgroundSvgToWindowHeightFactor;
+            float svgToArenaY = (backgroundSvgHeight - (y - backgroundSvgY + h)) * backgroundSvgToWindowHeightFactor;
             
             _platforms.push_back(Rectangle(
+                svgToArenaX, svgToArenaY,
                 h * backgroundSvgToWindowHeightFactor,
                 w * backgroundSvgToWindowHeightFactor,
-                0.361f, 0.227f, 0.039f, // rgb(92 58 10)
-                svgToWindowX, svgToWindowY
+                ColorRgb((uint8_t)92, 58, 10)
             ));
+
+            std::cout
+                << "Found PLATFORM"
+                << " at svg ("
+                << x
+                << ", "
+                << y
+                << "), with dimensions ("
+                << w
+                << ", "
+                << h
+                << "), Transformed to ("
+                << svgToArenaX
+                << ", "
+                << svgToArenaY
+                << ")bl with dimensions ("
+                << w * backgroundSvgToWindowHeightFactor
+                << ", "
+                << h * backgroundSvgToWindowHeightFactor
+                << ")"
+            << std::endl << std::endl;
+
         } else if (strcmp(elementName, "circle") == 0) {
             float cx = element->FloatAttribute("cx");
             float cy = element->FloatAttribute("cy");
             float r = element->FloatAttribute("r");
 
-            float svgToWindowX = (cx - backgroundSvgX - r) * backgroundSvgToWindowHeightFactor;
-            float svgToWindowY = (cy - backgroundSvgY + r) * backgroundSvgToWindowHeightFactor;
+            float svgToArenaX = (cx - backgroundSvgX - r) * backgroundSvgToWindowHeightFactor;
+            float svgToArenaY = (backgroundSvgHeight - (cy - backgroundSvgY + r)) * backgroundSvgToWindowHeightFactor;
 
             float characterHeight = 2 * r * backgroundSvgToWindowHeightFactor;
             float characterWidth = characterHeight * 0.75f;
 
             if (element->Attribute("fill", "green"))
-                _player = new Character(
-                    characterHeight, 
-                    characterWidth,
-                    0.059f, 0.741f, 0.059f, // rgb(15 189 15)
-                    svgToWindowX, svgToWindowY
-                );
+                _players.push_back(Character(
+                    svgToArenaX, svgToArenaY,
+                    characterHeight, characterWidth,
+                    ColorRgb((uint8_t)15, 189, 15)
+                ));
             else
                 _foes.push_back(Character(
-                    characterHeight, 
-                    characterWidth,
-                    0.741f, 0.059f, 0.059f, // rgb(189 15 15)
-                    svgToWindowX, svgToWindowY
+                    svgToArenaX, svgToArenaY,
+                    characterHeight, characterWidth,
+                    ColorRgb((uint8_t)189, 15, 15)
                 ));
+
+            std::cout
+                << "Found CHARACTER ["
+                << element->Attribute("fill")
+                << "] at ("
+                << cx
+                << ", "
+                << cy
+                << ") with radius "
+                << r
+                << ", Transformed to ("
+                << svgToArenaX
+                << ", "
+                << svgToArenaY
+                << ")bl with dimensions ("
+                << characterWidth
+                << ", "
+                << characterHeight
+                << ")"
+            << std::endl << std::endl;
         }
     }
+
+    return true;
 }

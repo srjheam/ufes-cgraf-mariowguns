@@ -1,36 +1,44 @@
-#include "rectangle.h"
+#include "character.h"
 #include <GL/glut.h>
 
-Rectangle::Rectangle(int height, int width, GLclampf bg_red, GLclampf bg_green,
-                     GLclampf bg_blue, GLfloat o_x, GLfloat o_y) {
-    _height = height;
-    _width = width;
-    _bg_red = bg_red;
-    _bg_green = bg_green;
-    _bg_blue = bg_blue;
-    _o_x = o_x;
-    _o_y = o_y;
+class Character::Impl {
+  public:
+    ColorRgb body_;
+
+    CharacterDirection direction_ = RIGHT;
+
+    const GLfloat speed_px_per_second_ = 420.f;
+
+    Impl(ColorRgb body) : body_(body) { }
+};
+
+Character::Character(GLfloat o_x, GLfloat o_y, int height, int width, ColorRgb body) 
+    : Entity(o_x, o_y, height, width), pimpl(new Impl(body)) {
+    
 }
 
-const int &Rectangle::height() const { return _height; }
-const int &Rectangle::width() const { return _width; }
+Character::Character(Character&&) noexcept = default;
 
-const GLclampf &Rectangle::bg_red() const { return _bg_red; }
-const GLclampf &Rectangle::bg_green() const { return _bg_green; }
-const GLclampf &Rectangle::bg_blue() const { return _bg_blue; }
+Character::~Character() = default;
 
-const GLfloat &Rectangle::o_x() const { return _o_x; }
-void Rectangle::o_x(const GLfloat &o_x) { _o_x = o_x; }
+const enum CharacterDirection &Character::direction() const {
+    return pimpl->direction_;
+}
 
-const GLfloat &Rectangle::o_y() const { return _o_y; }
-void Rectangle::o_y(const GLfloat &o_y) { _o_y = o_y; }
+void Character::direction(const enum CharacterDirection &direction) {
+    pimpl->direction_ = direction;
+}
 
-void Rectangle::draw() const {
-    glColor3f(_bg_red, _bg_green, _bg_blue);
+const GLfloat &Character::speed_px_per_second() const {
+    return pimpl->speed_px_per_second_;
+}
+
+void Character::draw() const {
+    glColor3f(pimpl->body_.gl_red(), pimpl->body_.gl_green(), pimpl->body_.gl_blue());
     glBegin(GL_QUADS);
-        glVertex2f(_o_x, _o_y);
-        glVertex2f(_o_x + _width, _o_y);
-        glVertex2f(_o_x + _width, _o_y + _height);
-        glVertex2f(_o_x, _o_y + _height);
+        glVertex2f(o_x(), o_y());
+        glVertex2f(o_x() + width(), o_y());
+        glVertex2f(o_x() + width(), o_y() + height());
+        glVertex2f(o_x(), o_y() + height());
     glEnd();
 }

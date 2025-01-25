@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "name": "run dbug",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/trab1",
+            "args": ["assets/arena_teste.svg"],
+            "preLaunchTask": "build"
+        }
+    ]
+}

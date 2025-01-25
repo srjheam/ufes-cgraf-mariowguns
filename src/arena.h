@@ -1,9 +1,12 @@
 #ifndef ARENA_H
 #define ARENA_H
 
-#include "rectangle.h"
-
 #include <vector>
+
+#include "rectangle.h"
+#include "character.h"
+
+#include "tinyxml2.h"
 
 class Arena {
     private:
@@ -13,13 +16,24 @@ class Arena {
         Rectangle *_background;
         std::vector<Rectangle> _platforms;
         std::vector<Character> _foes;
-        Character *_player;
+        std::vector<Character> _players; // only one player
 
     public:
         const int &height() const;
+        const int &width() const;
+
+        const Rectangle &background() const;
+        const std::vector<Rectangle> &platforms() const;
+        const std::vector<Character> &foes() const;
+        const Character &player() const;
+        const std::vector<Character> &players() const; //! only one player
 
         Arena(int height);
+        ~Arena();
+
         bool loadFrom(const tinyxml2::XMLDocument &doc);
+
+        void draw() const;
 };
 
 #endif

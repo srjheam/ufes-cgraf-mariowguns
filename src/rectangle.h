@@ -4,20 +4,22 @@
 #include <GL/gl.h>
 
 #include "entity.h"
+#include "color_rgb.h"
 
 class Rectangle : public Entity {
   private:
-    GLclampf _bg_red;
-    GLclampf _bg_green;
-    GLclampf _bg_blue;
+    ColorRgb _background;
 
   public:
-    const GLclampf &bg_red() const;
-    const GLclampf &bg_green() const;
-    const GLclampf &bg_blue() const;
+    Rectangle(GLfloat o_x, GLfloat o_y, int height, int width, ColorRgb background);
+    
+    Rectangle(const Rectangle&) = delete;
+    Rectangle& operator=(const Rectangle&) = delete;
+    
+    Rectangle(Rectangle&&) noexcept = default;
+    Rectangle& operator=(Rectangle&&) noexcept = default;
 
-    Rectangle(int height, int width, GLclampf bg_red, GLclampf bg_green,
-              GLclampf bg_blue, GLfloat o_x, GLfloat o_y);
+    virtual ~Rectangle() override = default;
 
     void draw() const;
 };

@@ -6,6 +6,7 @@
 LIBTINYXML2DIR        = ../include/tinyxml2
 LIBTINYXML2           = tinyxml2
 LIBTINYXML2DIRRELEASE = $(LIBTINYXML2DIR)/build/release
+LIBTINYXML2DIRDEBUG   = $(LIBTINYXML2DIR)/build/debug
 
 SRCS = $(shell find . -type f -name '*.cpp' | sed 's|^./||')
 
@@ -16,14 +17,17 @@ OUT               = trab1
 
 BUILDIR           = build
 RELEASEDIR        = $(BUILDIR)/release
+DEBUGDIR          = $(BUILDIR)/debug
 
-OBJSRELEASE = $(patsubst %.cpp, $(BUILDIR)/release/%.o, $(notdir $(SRCS)))
+OBJSRELEASE = $(patsubst %.cpp, $(RELEASEDIR)/%.o, $(notdir $(SRCS)))
+OBJSDEBUG = $(patsubst %.cpp, $(DEBUGDIR)/%.o, $(notdir $(SRCS)))
 
 # G++ - é o compilador usado
 # CFLAGS - são as flags dadas ao compilador durante a compilação
 CPP = g++
 override CPPFLAGS += -Wall -Wextra $(INCLUDES)
 
+DEBUGFLAGS = -ggdb3 -O0 -DDEBUG
 RELEASEFLAGS = -O3 -DNDEBUG
 
 MAKE = make
@@ -37,9 +41,14 @@ all : release
 
 release : pre-build-release build-release
 
+debug: pre-build-debug build-debug
+
 # Compila todos os .o
-$(BUILDIR)/release/%.o : %.cpp
+$(RELEASEDIR)/%.o : %.cpp
 	$(CPP) -o $@ -c $< $(CPPFLAGS) $(RELEASEFLAGS)
+
+$(DEBUGDIR)/%.o : %.cpp
+	$(CPP) -o $@ -c $< $(CPPFLAGS) $(DEBUGFLAGS)
 
 # Preparativos para o build; Garante que o diretório build/ existe
 pre-build:
@@ -49,8 +58,16 @@ pre-build-release: pre-build
 	mkdir -p $(RELEASEDIR)/
 	$(MAKE) -C $(LIBTINYXML2DIR)/
 
+pre-build-debug: pre-build
+	mkdir -p $(DEBUGDIR)/
+	$(MAKE) -C $(LIBTINYXML2DIR)/ debug
+
 build-release : $(OBJSRELEASE)
 	$(CPP) -o $(RELEASEDIR)/$(OUT) $^ -L $(LIBTINYXML2DIRRELEASE) -l$(LIBTINYXML2) $(CPPFLAGS) $(RELEASEFLAGS)
+
+
+build-debug : $(OBJSDEBUG)
+	$(CPP) -o $(DEBUGDIR)/$(OUT) $^ -L $(LIBTINYXML2DIRDEBUG) -l$(LIBTINYXML2) $(CPPFLAGS) $(DEBUGFLAGS)
 
 clean:
 	rm -rf $(BUILDIR)/

@@ -1,25 +1,21 @@
 #include "rectangle.h"
+
 #include <GL/glut.h>
 
+#include "color_rgb.h"
+
 Rectangle::Rectangle(
+    //! The x coordinate of the origin of the rectangle in its parent's coordinate system.
+    GLfloat o_x,
+    //! The y coordinate of the origin of the rectangle in its parent's coordinate system.
+    GLfloat o_y,
     int height,
     int width,
-    GLclampf bg_red,
-    GLclampf bg_green,
-    GLclampf bg_blue,
-    GLfloat o_x,
-    GLfloat o_y) : Entity(height, width, o_x, o_y) {
-    _bg_red = bg_red;
-    _bg_green = bg_green;
-    _bg_blue = bg_blue;
+    ColorRgb background) : Entity(o_x, o_y, height, width), _background(background) {
 }
 
-const GLclampf &Rectangle::bg_red() const { return _bg_red; }
-const GLclampf &Rectangle::bg_green() const { return _bg_green; }
-const GLclampf &Rectangle::bg_blue() const { return _bg_blue; }
-
 void Rectangle::draw() const {
-    glColor3f(_bg_red, _bg_green, _bg_blue);
+    glColor3f(_background.gl_red(), _background.gl_green(), _background.gl_blue());
     glBegin(GL_QUADS);
         glVertex2f(o_x(), o_y());
         glVertex2f(o_x() + width(), o_y());
