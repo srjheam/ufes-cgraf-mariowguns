@@ -7,8 +7,6 @@ class Character::Impl {
 
     CharacterDirection direction_ = RIGHT;
 
-    const GLfloat speed_px_per_second_ = 420.f;
-
     Impl(ColorRgb body) : body_(body) { }
 };
 
@@ -27,10 +25,6 @@ const enum CharacterDirection &Character::direction() const {
 
 void Character::direction(const enum CharacterDirection &direction) {
     pimpl->direction_ = direction;
-}
-
-const GLfloat &Character::speed_px_per_second() const {
-    return pimpl->speed_px_per_second_;
 }
 
 void Character::draw() const {

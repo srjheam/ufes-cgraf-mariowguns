@@ -29,8 +29,6 @@ class Character : public Entity {
     const enum CharacterDirection &direction() const;
     void direction(const enum CharacterDirection &direction);
 
-    const GLfloat &speed_px_per_second() const;
-
     void draw() const;
 };
 

@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-#include "rectangle.h"
 #include "character.h"
 #include "color_rgb.h"
 
@@ -16,8 +15,8 @@ Arena::~Arena() {
 const int &Arena::height() const { return _height; }
 const int &Arena::width() const { return _width; }
 
-const Rectangle &Arena::background() const { return *_background; }
-const std::vector<Rectangle> &Arena::platforms() const { return _platforms; }
+const Platform &Arena::background() const { return *_background; }
+const std::vector<Platform> &Arena::platforms() const { return _platforms; }
 const std::vector<Character> &Arena::foes() const { return _foes; }
 const Character &Arena::player() const { return _players.front(); }
 const std::vector<Character> &Arena::players() const { return _players; }
@@ -25,7 +24,7 @@ const std::vector<Character> &Arena::players() const { return _players; }
 void Arena::draw() const {
     _background->draw();
 
-    for (const Rectangle &platform : _platforms)
+    for (const Platform &platform : _platforms)
         platform.draw();
 
     for (const Character &foe : _foes)
@@ -34,10 +33,10 @@ void Arena::draw() const {
     player().draw();
 }
 
-bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
+float Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
     const tinyxml2::XMLElement *svg = doc.FirstChildElement("svg");
     if (svg == nullptr)
-        return false;
+        return 0;
 
     float backgroundSvgX = .0;
     float backgroundSvgY = .0;
@@ -61,7 +60,7 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
 
             _width = backgroundSvgWidth * backgroundSvgToWindowHeightFactor;
 
-            _background = new Rectangle(
+            _background = new Platform(
                 .0f, .0f,
                 _height, _width,
                 ColorRgb((uint8_t)66, 66, 240)
@@ -90,7 +89,7 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
     }
 
     if (_background == nullptr)
-        return false;
+        return 0;
 
     for (const tinyxml2::XMLElement *element = svg->FirstChildElement();
          element != nullptr; element = element->NextSiblingElement()) {
@@ -103,11 +102,11 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
             float w = element->FloatAttribute("width");
             float h = element->FloatAttribute("height");
 
-            // because arena's origin is (0, 0) as the instance of Background Rectangle
+            // because arena's origin is (0, 0) as the instance of Background Platform
             float svgToArenaX = (x - backgroundSvgX) * backgroundSvgToWindowHeightFactor;
             float svgToArenaY = (backgroundSvgHeight - (y - backgroundSvgY + h)) * backgroundSvgToWindowHeightFactor;
             
-            _platforms.push_back(Rectangle(
+            _platforms.push_back(Platform(
                 svgToArenaX, svgToArenaY,
                 h * backgroundSvgToWindowHeightFactor,
                 w * backgroundSvgToWindowHeightFactor,
@@ -181,5 +180,5 @@ bool Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
         }
     }
 
-    return true;
+    return backgroundSvgToWindowHeightFactor;
 }

@@ -45,15 +45,33 @@ class Entity {
     GLfloat vector_get_dx_dt(const GLfloat &dt) const;
     GLfloat vector_get_dy_dt(const GLfloat &dt) const;
 
-    //! Only for entities who are not overlapping at all
-    GLfloat distanceof_x(const Entity &entity) const;
-    //! Only for entities who are not overlapping at all
-    GLfloat distanceof_y(const Entity &entity) const;
+    bool aabb_isoverlapping_x(const Entity &entity) const;
+    bool aabb_isoverlapping_y(const Entity &entity) const;
 
-    //! Only for instances that are completely inside param entity
-    GLfloat distanceinsideof_x(const Entity &entity) const;
-    //! Only for instances that are completely inside param entity
-    GLfloat distanceinsideof_y(const Entity &entity) const;
+    bool aabb_isoverlapping(const Entity &entity) const;
+
+    bool aabb_isoverlapping_x_dx(const Entity &entity, const GLfloat &dx) const;
+    bool aabb_isoverlapping_y_dy(const Entity &entity, const GLfloat &dy) const;
+    
+    bool aabb_isoverlapping_delta(const Entity &stationary, const GLfloat &dx, const GLfloat &dy) const;
+    bool aabb_isoverlapping_dx(const Entity &stationary, const GLfloat &dx) const;
+    bool aabb_isoverlapping_dy(const Entity &stationary, const GLfloat &dy) const;
+
+    //! Return zero if overlapping
+    GLfloat aabb_distanceof_x(const Entity &entity) const;
+    //! Return zero if overlapping
+    GLfloat aabb_distanceof_y(const Entity &entity) const;
+
+    bool aabb_isinsideof_x(const Entity &entity) const;
+    bool aabb_isinsideof_y(const Entity &entity) const;
+
+    bool aabb_isinsideof_dx(const Entity &entity, const GLfloat &dx) const;
+    bool aabb_isinsideof_dy(const Entity &entity, const GLfloat &dy) const;
+
+    //! Return the shortest distance between the nearest borders; the signal follows the cardinal direction relative to the container even if the entities are not overlapping at all
+    GLfloat aabb_insideof_x(const Entity &entity) const;
+    //! Return the shortest distance between the nearest borders; the signal follows the cardinal direction relative to the container even if the entities are not overlapping at all
+    GLfloat aabb_insideof_y(const Entity &entity) const;
 
     Entity(GLfloat o_x, GLfloat o_y, int height, int width);
 

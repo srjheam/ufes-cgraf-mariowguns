@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <iostream>
+#include <limits>
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -15,24 +16,47 @@ class Game::Impl {
     size_t windowSideLength_;
     bool keyboardKeyPressed_[256] = {0};
 
+    GLfloat gravity_px_s_ = 294.0f;
+    GLfloat characters_speed_px_s_ = 336.0f;
+    GLfloat characters_jump_px_s_ = 630.0f;
+
     Arena *arena_;
 
     Impl(size_t windowSideLength)
-        : windowSideLength_(windowSideLength), arena_(new Arena(windowSideLength)) { }
+        : windowSideLength_(windowSideLength),
+            arena_(new Arena(windowSideLength)) { }
 
     ~Impl() { delete arena_; }
-
-    GLfloat get_gravity_dt(GLdouble dt) {
-        return 9.8f * (dt / 1000.0f);
-    }
 
     bool moveCharacterAndCheckCollisions(const Character &character, GLdouble dt) {
         auto min_deltas_check_all_zero = [&character](const auto &entities, GLfloat &dx, GLfloat &dy) {
             for (auto &entity : entities) {                
                 if (dynamic_cast<const Entity*>(&entity) == dynamic_cast<const Entity*>(&character)) continue;
 
-                dx = srutils::mineqsignf(dx, character.distanceof_x(entity));
-                dy = srutils::mineqsignf(dy, character.distanceof_y(entity));
+                if (!character.aabb_isoverlapping_delta(entity, dx, dy))
+                    continue;
+
+                //
+                // BUG:
+                //   Se um character bater na quina de uma platform (leia-se, se
+                //   uma entity qualquer se deslocar diagonalmente em direção a
+                //   um eixo de outra entidade qualquer), por algum motivo ela
+                //   fica garrada lá até haver um vetor de força horizontalmente
+                //   contrario a entidade.
+                //
+                //   att: 2025-01-26
+                //     Antes, as funcoes aabb_distanceof_x e aabb_distanceof_y retornavam 0
+                //     quando havia overlapping (justamente o caso da quina), quanto
+                //     removida essa condicao, o personagem nao fica mais garrado
+                //     mas sim atravessa a plataforma.
+                //
+
+                if (character.aabb_isoverlapping_dx(entity, dx))
+                    dx = srutils::minabsf(dx, character.aabb_distanceof_x(entity));
+                    //dx = .0f;
+                if (character.aabb_isoverlapping_dy(entity, dy))
+                    dy = srutils::minabsf(dy, character.aabb_distanceof_y(entity));
+                    //dy = .0f;
             }
 
             if (dx == .0f && dy == .0f)
@@ -53,23 +77,16 @@ class Game::Impl {
             return true;
 
         // colision walls
-        dx = srutils::mineqsignf(
-            dx,
-            character.distanceinsideof_x(arena_->background())
-        );
-        dy = srutils::mineqsignf(
-            dy,
-            character.distanceinsideof_y(arena_->background())
-        );
-
-        std::cout << "Character: " << std::endl;
-        std::cout << "o_x: " << character.o_x() << " o_y: " << character.o_y() << std::endl;
-        std::cout << "dx: " << dx << " dy: " << dy << std::endl << std::endl;
+        auto &wall = arena_->background();
+        if (!character.aabb_isinsideof_dx(wall, dx))
+            dx = srutils::minabsf(dx, character.aabb_insideof_x(wall));
+            //dx = .0f;
+        if (!character.aabb_isinsideof_dy(wall, dy))
+            dy = srutils::minabsf(dy, character.aabb_insideof_y(wall));
+            //dy = .0f;
 
         character.o_x(character.o_x() + dx);
         character.o_y(character.o_y() + dy);
-
-        character.vector_set(dx, dy);
 
         return dx != 0.0f || dy != 0.0f;
     }
@@ -90,13 +107,18 @@ bool Game::loadArena(const char *path) {
         return false;
     }
 
-    bool arenaLoaded = pimpl->arena_->loadFrom(doc);
-    if (!arenaLoaded)
+    float factor = pimpl->arena_->loadFrom(doc);
+    if (factor == .0f)
         return false;
+
+    // set factors
+    //pimpl->gravity_px_s_ *= factor;
+    //pimpl->characters_speed_px_s_ *= factor;
+    //pimpl->characters_jump_px_s_ *= factor;
 
     for (const auto &foe : pimpl->arena_->foes()) {
         foe.vector_set_direction(1.0f, 0.0f);
-        foe.vector_velocity(foe.speed_px_per_second());
+        foe.vector_velocity(pimpl->characters_speed_px_s_);
     }
 
     return true;
@@ -152,23 +174,20 @@ void Game::idle() {
 
     auto &player = pimpl->arena_->player();
     if (pimpl->keyboardKeyPressed_['a'] || pimpl->keyboardKeyPressed_['A']) {
-        player.vector_sum(-1.0f, 0.0f, player.speed_px_per_second());
+        player.vector_sum(-1.0f, 0.0f, pimpl->characters_speed_px_s_);
     } else if (pimpl->keyboardKeyPressed_['d'] || pimpl->keyboardKeyPressed_['D']) {
-        player.vector_sum(1.0f, 0.0f, player.speed_px_per_second());
+        player.vector_sum(1.0f, 0.0f, pimpl->characters_speed_px_s_);
     }
 
     if (pimpl->keyboardKeyPressed_['w'] || pimpl->keyboardKeyPressed_['W']) {
-        player.vector_sum(0.0f, 1.0f, player.speed_px_per_second());
+        player.vector_sum(0.0f, 1.0f, pimpl->characters_jump_px_s_);
     }
 
     // gravity
-    player.vector_sum(0.0f, -1.0f, pimpl->get_gravity_dt(dt));
+    player.vector_sum(0.0f, -1.0f, pimpl->gravity_px_s_);
 
-    std::cout << "MOVENDO PLAYER" << dt << std::endl;
-    std::cout << "Player: " << std::endl;
-    std::cout << "o_x: " << player.o_x() << " o_y: " << player.o_y() << std::endl;
     pimpl->moveCharacterAndCheckCollisions(player, dt);
-    std::cout << "FIM MOVIMENTO PLAYER" << std::endl << std::endl;
+    player.vector_set_zero();
 
     glutPostRedisplay();
 }

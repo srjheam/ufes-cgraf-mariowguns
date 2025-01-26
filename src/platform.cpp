@@ -1,10 +1,10 @@
-#include "rectangle.h"
+#include "platform.h"
 
 #include <GL/glut.h>
 
 #include "color_rgb.h"
 
-Rectangle::Rectangle(
+Platform::Platform(
     //! The x coordinate of the origin of the rectangle in its parent's coordinate system.
     GLfloat o_x,
     //! The y coordinate of the origin of the rectangle in its parent's coordinate system.
@@ -14,7 +14,7 @@ Rectangle::Rectangle(
     ColorRgb background) : Entity(o_x, o_y, height, width), _background(background) {
 }
 
-void Rectangle::draw() const {
+void Platform::draw() const {
     glColor3f(_background.gl_red(), _background.gl_green(), _background.gl_blue());
     glBegin(GL_QUADS);
         glVertex2f(o_x(), o_y());
