@@ -5,47 +5,21 @@
 
 #include "game.h"
 
-Game g_game = Game(500);
+#define WINDOW_SIDE_LENGTH 500
 
-void display(void) {
-    g_game.display();
-}
+Game g_game(WINDOW_SIDE_LENGTH);
 
-void keyboard(unsigned char key, int x, int y) {
-    g_game.keyboard(key, x, y);
-}
-
-void keyboardUp(unsigned char key, int x, int y) {
-    g_game.keyboardUp(key, x, y);
-}
-
-void idle() {
-    g_game.idle();
-}
-
-void mouse(int button, int state, int x, int y) {
-    g_game.mouse(button, state, x, y);
-}
-
-void motion(int x, int y) {
-    g_game.motion(x, y);
-}
-
-void init(void) {
-    /* selecionar cor de fundo (azul rgb(158 158 255)) */
-    glClearColor(0.620f, 0.620f, 1.0f, 1.0f);
-
-    /* inicializar sistema de visualizacao */
-    glMatrixMode(GL_PROJECTION);
-    glOrtho(0.0, g_game.windowSideLength(), 0.0, g_game.windowSideLength(), -100.0, 100.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-}
+void display_wrapper(void);
+void keyboard_wrapper(unsigned char key, int x, int y);
+void keyboardUp_wrapper(unsigned char key, int x, int y);
+void idle_wrapper(void);
+void mouse_wrapper(int button, int state, int x, int y);
+void motion_wrapper(int x, int y);
 
 int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(g_game.windowSideLength(), g_game.windowSideLength());
+    glutInitWindowSize(WINDOW_SIDE_LENGTH, WINDOW_SIDE_LENGTH);
     glutInitWindowPosition(100, 100);
     glutCreateWindow(argv[0]);
 
@@ -59,16 +33,41 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    init();
-    glutDisplayFunc(display);
-    glutKeyboardFunc(keyboard);
-    glutKeyboardUpFunc(keyboardUp);
-    glutIdleFunc(idle);
-    glutMouseFunc(mouse);
-    glutMotionFunc(motion);
-    glutPassiveMotionFunc(motion);
+    g_game.start();
+
+    glutDisplayFunc(display_wrapper);
+    glutKeyboardFunc(keyboard_wrapper);
+    glutKeyboardUpFunc(keyboardUp_wrapper);
+    glutIdleFunc(idle_wrapper);
+    glutMouseFunc(mouse_wrapper);
+    glutMotionFunc(motion_wrapper);
+    glutPassiveMotionFunc(motion_wrapper);
 
     glutMainLoop();
 
     return 0;
+}
+
+void display_wrapper(void) {
+    g_game.display();
+}
+
+void keyboard_wrapper(unsigned char key, int x, int y) {
+    g_game.keyboard(key, x, y);
+}
+
+void keyboardUp_wrapper(unsigned char key, int x, int y) {
+    g_game.keyboardUp(key, x, y);
+}
+
+void idle_wrapper(void) {
+    g_game.idle();
+}
+
+void mouse_wrapper(int button, int state, int x, int y) {
+    g_game.mouse(button, state, x, y);
+}
+
+void motion_wrapper(int x, int y) {
+    g_game.motion(x, y);
 }

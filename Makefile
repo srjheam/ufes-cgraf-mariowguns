@@ -18,3 +18,7 @@ debug:
 clean:
 	$(MAKE) -C src/ clean
 	rm -f $(TARGET)
+
+valgrind:
+	$(MAKE) -C src/ valgrind VALARGS="../$(VALARGS)"
+	cp -f src/valgrind-out.txt ./valgrind-out.txt

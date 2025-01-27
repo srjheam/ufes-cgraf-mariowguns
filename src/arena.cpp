@@ -33,7 +33,13 @@ void Arena::draw() const {
     player().draw();
 }
 
-float Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
+float Arena::loadFrom(const char *path) {
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError fileLoaded = doc.LoadFile(path);
+
+    if (fileLoaded != tinyxml2::XML_SUCCESS)
+        return .0f;
+
     const tinyxml2::XMLElement *svg = doc.FirstChildElement("svg");
     if (svg == nullptr)
         return 0;
@@ -143,7 +149,7 @@ float Arena::loadFrom(const tinyxml2::XMLDocument &doc) {
             float svgToArenaY = (backgroundSvgHeight - (cy - backgroundSvgY + r)) * backgroundSvgToWindowHeightFactor;
 
             float characterHeight = 2 * r * backgroundSvgToWindowHeightFactor;
-            float characterWidth = characterHeight * 0.75f;
+            float characterWidth = characterHeight * .34f;
 
             if (element->Attribute("fill", "green"))
                 _players.push_back(Character(

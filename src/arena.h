@@ -31,7 +31,7 @@ class Arena {
         Arena(int height);
         ~Arena();
 
-        float loadFrom(const tinyxml2::XMLDocument &doc);
+        float loadFrom(const char *doc);
 
         void draw() const;
 };

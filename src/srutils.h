@@ -5,6 +5,14 @@
 
 namespace srutils
 {
+   // Isso sem duvida não deveria estar aqui
+   // bahianagem total
+   const float CHARACTER_SPEED_PX_S = 210.f;
+
+   const float SEN_45 = 0.70710678118f;
+   const float COS_45 = 0.70710678118f;
+   const float TG_45 = 1.f;
+
    inline float normalizef(const float &dx, const float &dy)
    {
       return sqrtf(dx * dx + dy * dy);
@@ -30,6 +38,18 @@ namespace srutils
          ? a
          : b;
    }
+
+   //
+   // Although equalities calculated with epsilons are very important in many
+   // cases of floating-point errors, inequalities are not so much and may even
+   // provoke errors themselves.
+   //
+   // I admit that I wrote the following functions fearing that a previous error
+   // was caused by a floating-point error. Turns out it was not (as usual).
+   //
+   // Inequalities with epsilons are not appropriate and I have not removed them
+   // because so far no errors have been detected and I am too lazy to remove them.  
+   //
 
    inline float epseq(const float &a, const float &b, const float &eps =  128 * std::numeric_limits<float>::epsilon())
    {

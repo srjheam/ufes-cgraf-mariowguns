@@ -27,7 +27,18 @@ class Character : public Entity {
     virtual ~Character() override;
 
     const enum CharacterDirection &direction() const;
-    void direction(const enum CharacterDirection &direction);
+    void direction(const enum CharacterDirection &direction) const;
+
+    void movement_translate(GLfloat dx, GLfloat dy) const override;
+
+    const bool &jumping() const;
+    void jumping(const bool &direction) const;
+
+    bool jump_can_they() const;
+    void jump_start() const;
+    void jump_end() const;
+
+    void aim(GLfloat dx, GLfloat dy) const;
 
     void draw() const;
 };

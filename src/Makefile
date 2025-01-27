@@ -12,6 +12,8 @@ SRCS = $(shell find . -type f -name '*.cpp' | sed 's|^./||')
 
 INCLUDES = -lGL -lGLU -lglut -lm -I $(LIBTINYXML2DIR)
 
+VALGRINDOUT = valgrind-out.txt
+
 MAIN              = main
 OUT               = trab1
 
@@ -70,5 +72,17 @@ build-debug : $(OBJSDEBUG)
 	$(CPP) -o $(DEBUGDIR)/$(OUT) $^ -L $(LIBTINYXML2DIRDEBUG) -l$(LIBTINYXML2) $(CPPFLAGS) $(DEBUGFLAGS)
 
 clean:
-	rm -rf $(BUILDIR)/
+	rm -rf $(BUILDIR)/ $(VALGRINDOUT)
 	$(MAKE) -C $(LIBTINYXML2DIR)/ clean
+
+valgrind: debug
+	rm -f $(VALGRINDOUT)
+
+	valgrind --leak-check=full \
+			 --show-leak-kinds=all \
+			 --track-origins=yes \
+			 --verbose \
+			 --log-file=$(VALGRINDOUT) \
+			 ./$(DEBUGDIR)/$(OUT) $(VALARGS)
+
+	@echo "Head to $(VALGRINDOUT)"

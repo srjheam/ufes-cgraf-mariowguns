@@ -12,12 +12,12 @@ class Game {
     std::unique_ptr<Impl> pimpl;
 
   public:
-    int windowSideLength() const;
-
     Game(size_t windowSideLength);
     ~Game();
 
     bool loadArena(const char *path);
+
+    bool start();
 
     void display(void);
     void keyboard(unsigned char key, int x, int y);

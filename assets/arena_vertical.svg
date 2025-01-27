@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <rect width="350" height="200" x="-175" y="50" fill="blue" />
+  <!-- Obstacles -->
+  <rect width="8" height="60" x="-120" y="80" fill="black" />
+  <rect width="25" height="3" x="-90" y="150" fill="black" />
+  <rect width="6" height="30" x="40" y="100" fill="black" />
+  <!-- Player (green) -->
+  <circle cx="-160" cy="220" r="4.7" fill="green" />
+  <!-- Opponents (red) -->
+  <circle cx="100" cy="180" r="4.7" fill="red" />
+  <circle cx="-50" cy="120" r="4.7" fill="red" />
+  <circle cx="150" cy="90" r="4.7" fill="red" />
+</svg>
