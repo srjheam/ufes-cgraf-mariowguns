@@ -40,7 +40,7 @@ Você pode encontrar os trabalhos avaliativos dessa disciplina no meu perfil do 
 2. Execute o programa
 
    ```sh
-   ./trab1 <arena_path>
+   ./trabalhocg <arena_path>
    ```
 
 Onde,

@@ -15,7 +15,7 @@ INCLUDES = -lGL -lGLU -lglut -lm -I $(LIBTINYXML2DIR)
 VALGRINDOUT = valgrind-out.txt
 
 MAIN              = main
-OUT               = trab1
+OUT               = trabalhocg
 
 BUILDIR           = build
 RELEASEDIR        = $(BUILDIR)/release

@@ -41,15 +41,6 @@ class Game::Impl {
         for (auto &button : mouseButtonPressed_)
             button = false;
 
-        delete arena_;
-
-        auto *narena = new Arena(windowSideLength_);
-        if (!narena->loadFrom(path_))
-            throw std::runtime_error("Failed to load arena");
-
-        arena_ = narena;
-
-        status_ = GameStatus::RUNNING;   
     }
 
     void init(void) {
@@ -275,6 +266,23 @@ class Game::Impl {
             // set up player gravity
             foe.vector_sum(0.0f, -1.0f, gravity_px_s_);
 
+            if (foe.colisions_last_bottom() != nullptr && foe.colisions_last_bottom() != &arena_->background()) {
+                auto dx = foe.vector_current().calc_dx_dt(dt / 1000.0f);
+                auto dy = foe.vector_current().calc_dy_dt(dt / 1000.0f);
+
+                auto platform = foe.colisions_last_bottom();
+
+                auto max_mov = foe.aabb_insideof_x(*platform, dx);
+                if (fabsf(max_mov) <= fabs(dx)) {
+                    dx = max_mov;
+
+                    if (foe.direction() == CharacterDirection::LEFT)
+                        foe.direction(CharacterDirection::RIGHT);
+                    else
+                        foe.direction(CharacterDirection::LEFT);
+                    foe.vector_current().set_vector(dx, dy);
+                }
+            }
 
             moveEntityNCheckCollisions(foe, dt);
             foe.vector_save_current_set_zero();
