@@ -39,6 +39,7 @@ class Character : public Entity {
     void jump_start() const;
     void jump_end() const;
 
+    bool shot_add_dt(GLdouble dt) const;
     void aim(GLfloat dx, GLfloat dy) const;
     Bullet shoot() const;
 

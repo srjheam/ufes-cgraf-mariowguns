@@ -34,32 +34,22 @@ class Game::Impl {
 
     ~Impl() { delete arena_; }
 
-    void setUp() {
-        // set factors
-        //pimpl->gravity_px_s_ *= factor;
-        //pimpl->characters_speed_px_s_ *= factor;
-        //pimpl->characters_jump_px_s_ *= factor;
-
-        for (const auto &foe : arena_->foes())
-            foe.vector_sum(1.0f, 0.0f, characters_speed_px_s_);
-    }
-
     void reset() {
-        auto *narena = new Arena(windowSideLength_);
-        narena->loadFrom(path_);
-
-        auto *oarena = arena_;
-        arena_ = narena;
-
-        delete oarena;
-
         for (auto &key : keyboardKeyPressed_)
             key = false;
         
         for (auto &button : mouseButtonPressed_)
             button = false;
 
-        setUp();
+        delete arena_;
+
+        auto *narena = new Arena(windowSideLength_);
+        if (!narena->loadFrom(path_))
+            throw std::runtime_error("Failed to load arena");
+
+        arena_ = narena;
+
+        status_ = GameStatus::RUNNING;   
     }
 
     void init(void) {
@@ -75,8 +65,6 @@ class Game::Impl {
 
     bool checkEndGame() {
         if (keyboardKeyPressed_['r'] || keyboardKeyPressed_['R']) {
-            status_ = GameStatus::RUNNING;
-
             reset();
 
             return true;
@@ -169,13 +157,11 @@ class Game::Impl {
 
         const auto kill = [&bullets](const Entity *colision) {
             if (colision != nullptr) {
-                if (dynamic_cast<const Character*>(colision) != nullptr) {
-                    auto &character = *dynamic_cast<const Character*>(colision);
-                    
-                    character.die();
+                if (dynamic_cast<const Character*>(colision) != nullptr
+                || dynamic_cast<const Bullet*>(colision) != nullptr)
+                    colision->die();
 
-                    return true;
-                }
+                return true;
             }
             return false;
         };
@@ -209,7 +195,7 @@ class Game::Impl {
         }
     }
 
-    void controlPlayer(GLdouble dt) {
+    void controlPlayer(GLdouble dt, GLdouble ct) {
         // =============== movement
         // set up player movement vector
         const auto &player = arena_->player();
@@ -251,7 +237,7 @@ class Game::Impl {
         }
 
         moveEntityNCheckCollisions(player, dt);
-        if (player.colisions_last_left() != nullptr || player.colisions_last_right() != nullptr)
+        if (player.colisions_last_top() != nullptr || player.colisions_last_bottom() != nullptr)
             player.jump_end();
 
         player.vector_save_current_set_zero();
@@ -260,14 +246,14 @@ class Game::Impl {
             status_ = GameStatus::WON;
 
         // ====================== gun
-        if (mouseButtonPressed_[GLUT_LEFT_BUTTON]) {
+        if (player.shot_add_dt(dt) && mouseButtonPressed_[GLUT_LEFT_BUTTON]) {
             auto bullet = player.shoot();
-            bullet.ttl(dt + 60 * 1000);
+            bullet.ttl(ct + 60 * 1000);
             arena_->addBullet(std::move(bullet));
         }
     }
 
-    void controlFoes(GLdouble dt) {
+    void controlFoes(GLdouble dt, GLdouble ct) {
         auto &foes = arena_->foes();
 
         for (auto it = foes.begin(); it != foes.end();)
@@ -289,26 +275,16 @@ class Game::Impl {
             // set up player gravity
             foe.vector_sum(0.0f, -1.0f, gravity_px_s_);
 
-            if (foe.colisions_last_bottom() != nullptr && foe.colisions_last_bottom() != &arena_->background()) {
-                auto dx = foe.vector_current().calc_dx_dt(dt / 1000.0f);
-                auto dy = foe.vector_current().calc_dy_dt(dt / 1000.0f);
-
-                auto platform = foe.colisions_last_bottom();
-
-                auto max_mov = foe.aabb_insideof_x(*platform, dx);
-                if (fabsf(max_mov) <= fabs(dx)) {
-                    dx = max_mov;
-
-                    if (foe.direction() == CharacterDirection::LEFT)
-                        foe.direction(CharacterDirection::RIGHT);
-                    else
-                        foe.direction(CharacterDirection::LEFT);
-                    foe.vector_current().set_vector(dx, dy);
-                }
-            }
 
             moveEntityNCheckCollisions(foe, dt);
             foe.vector_save_current_set_zero();
+
+            foe.aim(arena_->player().o_x() - foe.o_x(), arena_->player().o_y() - foe.o_y());
+            if (foe.shot_add_dt(dt)) {
+                auto bullet = foe.shoot();
+                bullet.ttl(ct + 60 * 1000);
+                arena_->addBullet(std::move(bullet));
+            }
 
             if (foe.direction() == CharacterDirection::LEFT && foe.colisions_last_left() != nullptr)
                 foe.direction(CharacterDirection::RIGHT);
@@ -358,8 +334,6 @@ bool Game::loadArena(const char *path) {
 
 bool Game::start() {
     pimpl->init();
-
-    pimpl->setUp();
 
     return true;
 }
@@ -429,6 +403,8 @@ void Game::keyboard(unsigned char key, int x, int y) {
     if (y) { }
 
     pimpl->keyboardKeyPressed_[key] = true;
+
+    glutPostRedisplay();
 }
 
 void Game::keyboardUp(unsigned char key, int x, int y) {
@@ -436,12 +412,11 @@ void Game::keyboardUp(unsigned char key, int x, int y) {
     if (y) { }
 
     pimpl->keyboardKeyPressed_[key] = false;
+
+    glutPostRedisplay();
 }
 
 void Game::idle() {
-    if (pimpl->checkEndGame())
-        return;
-
     static GLdouble previousTime = glutGet(GLUT_ELAPSED_TIME);
 
     GLdouble currentTime = glutGet(GLUT_ELAPSED_TIME);
@@ -450,11 +425,17 @@ void Game::idle() {
     GLdouble dt = currentTime - previousTime;
     previousTime = currentTime;
 
+    if (pimpl->checkEndGame()) {
+        glutPostRedisplay();
+
+        return;
+    }
+
     pimpl->controlBullets(dt, currentTime);
 
-    pimpl->controlPlayer(dt);
+    pimpl->controlPlayer(dt, currentTime);
 
-    pimpl->controlFoes(dt);
+    pimpl->controlFoes(dt, currentTime);
 
     glutPostRedisplay();
 }
@@ -464,6 +445,8 @@ void Game::mouse(int button, int state, int x, int y) {
     if (y) { }
 
     pimpl->mouseButtonPressed_[button] = state == GLUT_DOWN;
+
+    glutPostRedisplay();
 }
 
 void Game::motion(int x, int y) {
