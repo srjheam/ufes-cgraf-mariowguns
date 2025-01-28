@@ -1,6 +1,6 @@
 MAKE = make
 
-TARGET = trab1
+TARGET = trabalhocg
 
 OUTRELEASEPATH = src/build/release/$(TARGET)
 OUTDEBUGPATH = src/build/debug/$(TARGET)

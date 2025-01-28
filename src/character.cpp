@@ -15,6 +15,8 @@ class Character::Impl {
     float currJumpYAcc = .0f;
     bool jumping = false;
 
+    GLdouble sinceLastShotDt = .0f;
+
     //! [-45.0, +45.0]
     GLdouble gunAngleDeg = 0.0f;
 
@@ -236,7 +238,14 @@ void Character::aim(GLfloat dx, GLfloat dy) const {
     }
 }
 
+bool Character::shot_add_dt(GLdouble dt) const {
+    pimpl->sinceLastShotDt += dt;
+    return pimpl->sinceLastShotDt > 3.0f * 1000;
+}
+
 Bullet Character::shoot() const {
+    pimpl->sinceLastShotDt = 0.0f;
+
     auto angle = pimpl->gunAngleDeg * M_PI / 180.0;
     auto dx = cos(angle);
     auto dy = sin(angle);
