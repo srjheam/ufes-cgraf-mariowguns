@@ -1,10 +1,12 @@
 #ifndef ARENA_H
 #define ARENA_H
 
+#include <list>
 #include <vector>
 
 #include "platform.h"
 #include "character.h"
+#include "bullet.h"
 
 #include "tinyxml2.h"
 
@@ -15,8 +17,9 @@ class Arena {
 
         Platform *_background;
         std::vector<Platform> _platforms;
-        std::vector<Character> _foes;
+        std::list<Character> _foes;
         std::vector<Character> _players; // only one player
+        std::list<Bullet> _bullets;
 
     public:
         const int &height() const;
@@ -24,9 +27,12 @@ class Arena {
 
         const Platform &background() const;
         const std::vector<Platform> &platforms() const;
-        const std::vector<Character> &foes() const;
+        std::list<Character> &foes();
         const Character &player() const;
         const std::vector<Character> &players() const; //! only one player
+        std::list<Bullet> &bullets();
+
+        void addBullet(Bullet &&bullet);
 
         Arena(int height);
         ~Arena();

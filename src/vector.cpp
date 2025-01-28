@@ -16,6 +16,10 @@ class Vector::Impl
 
 Vector::Vector() : pimpl(new Impl) { }
 
+Vector::Vector(float dx, float dy) : pimpl(new Impl) {
+    set_direction(dx, dy);
+}
+
 Vector::Vector(const Vector &vector) : pimpl(new Impl) {
     pimpl->direction_x_ = vector.pimpl->direction_x_;
     pimpl->direction_y_ = vector.pimpl->direction_y_;
@@ -36,16 +40,20 @@ Vector& Vector::operator=(Vector &&vector) noexcept = default;
 
 Vector::~Vector() = default;
 
-const float& Vector::direction_x() const { return pimpl->direction_x_; }
-void Vector::set_direction_x(const float &dx) { pimpl->direction_x_ = dx; }
+float Vector::angle() const {
+    return atan2f(pimpl->direction_y_, pimpl->direction_x_);
+}
 
-const float& Vector::direction_y() const { return pimpl->direction_y_; }
-void Vector::set_direction_y(const float &dy) { pimpl->direction_y_ = dy; }
+float Vector::direction_x() const { return pimpl->direction_x_; }
+void Vector::set_direction_x(float dx) { pimpl->direction_x_ = dx; }
 
-const float& Vector::velocity() const { return pimpl->velocity_; }
-void Vector::set_velocity(const float &velocity) { pimpl->velocity_ = velocity; }
+float Vector::direction_y() const { return pimpl->direction_y_; }
+void Vector::set_direction_y(float dy) { pimpl->direction_y_ = dy; }
 
-void Vector::set_direction(const float &dx, const float &dy) {
+float Vector::velocity() const { return pimpl->velocity_; }
+void Vector::set_velocity(float velocity) { pimpl->velocity_ = velocity; }
+
+void Vector::set_direction(float dx, float dy) {
     float length = srutils::normalizef(dx, dy);
 
     if (length > 0) {
@@ -58,7 +66,7 @@ void Vector::set_direction(const float &dx, const float &dy) {
     }
 }
 
-void Vector::set_vector(const float &dx, const float &dy) const {
+void Vector::set_vector(float dx, float dy) const {
     pimpl->velocity_ = srutils::normalizef(dx, dy);
     
     if (pimpl->velocity_ > 0) {
@@ -77,7 +85,7 @@ void Vector::set_zero() const {
     pimpl->velocity_ = .0f;
 }
 
-void Vector::sum(const float &dx, const float &dy, const float &velocity) {
+void Vector::sum(float dx, float dy, float velocity) {
     float cvx = pimpl->direction_x_ * pimpl->velocity_;
     float cvy = pimpl->direction_y_ * pimpl->velocity_;
     
@@ -96,11 +104,10 @@ void Vector::sum(const float &dx, const float &dy, const float &velocity) {
     }
 }
 
-
-float Vector::calc_dx_dt(const float &dt) const {
+float Vector::calc_dx_dt(float dt) const {
     return pimpl->direction_x_ * pimpl->velocity_ * dt;
 }
 
-float Vector::calc_dy_dt(const float &dt) const {
+float Vector::calc_dy_dt(float dt) const {
     return pimpl->direction_y_ * pimpl->velocity_ * dt;
 }

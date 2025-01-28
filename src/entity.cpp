@@ -51,6 +51,8 @@ void Entity::ttl(const GLdouble &ttl) const { pimpl->ttl_ = ttl; }
 const bool &Entity::hidden() const { return pimpl->hidden_; }
 void Entity::hidden(const bool &hidden) const { pimpl->hidden_ = hidden; }
 
+void Entity::die() const { pimpl->ttl_ = -1.0; pimpl->hidden_ = true; }
+
 void Entity::movement_translate(GLfloat dx, GLfloat dy) const {
     pimpl->o_x_ += dx;
     pimpl->o_y_ += dy;
@@ -71,6 +73,11 @@ void Entity::vector_set_direction(GLfloat dx, GLfloat dy) const {
 void Entity::vector_save_current_set_zero() const {
     pimpl->lastVector_ = pimpl->currentVector_;
     pimpl->currentVector_.set_zero();
+}
+
+void Entity::vector_save_current_set(const Vector &vector) const {
+    pimpl->lastVector_ = pimpl->currentVector_;
+    pimpl->currentVector_ = vector;
 }
 
 void Entity::vector_sum(GLfloat vx, GLfloat vy, GLfloat v) const {
@@ -266,6 +273,10 @@ const Entity *Entity::colisions_last_left() const {
 
 const Entity *Entity::colisions_last_right() const {
     return (pimpl->lastVector_.direction_x() > 0) ? pimpl->lastCollidedX_ : nullptr;
+}
+
+const std::tuple<const Entity*, const Entity*> Entity::colisions_tuple() const {
+    return std::make_tuple(pimpl->lastCollidedX_, pimpl->lastCollidedY_);
 }
 
 void Entity::colisions_set_last_x(const Entity &entity) const {

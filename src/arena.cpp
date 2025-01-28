@@ -17,9 +17,12 @@ const int &Arena::width() const { return _width; }
 
 const Platform &Arena::background() const { return *_background; }
 const std::vector<Platform> &Arena::platforms() const { return _platforms; }
-const std::vector<Character> &Arena::foes() const { return _foes; }
+std::list<Character> &Arena::foes() { return _foes; }
 const Character &Arena::player() const { return _players.front(); }
 const std::vector<Character> &Arena::players() const { return _players; }
+std::list<Bullet> &Arena::bullets() { return _bullets; }
+
+void Arena::addBullet(Bullet &&bullet) { _bullets.push_back(std::move(bullet)); }
 
 void Arena::draw() const {
     _background->draw();
@@ -29,6 +32,9 @@ void Arena::draw() const {
 
     for (const Character &foe : _foes)
         foe.draw();
+
+    for (const auto &bullet : _bullets)
+        bullet.draw();
 
     player().draw();
 }

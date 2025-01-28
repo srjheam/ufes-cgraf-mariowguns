@@ -12,9 +12,17 @@ class Bullet : public Entity {
     std::unique_ptr<Impl> pimpl;
 
   public:
-    Bullet(GLfloat o_x, GLfloat o_y, Vector direction);
+    Bullet(GLfloat o_x, GLfloat o_y, GLfloat height, GLfloat width, Vector direction, GLdouble ttl);
+
+    Bullet(const Bullet&) = delete;
+    Bullet& operator=(const Bullet&) = delete;
+    
     Bullet(Bullet&&) noexcept;
+    Bullet& operator=(Bullet&&) noexcept = default;
+
     ~Bullet();
+
+    const Vector &direction() const;
 
     void draw() const;
 };

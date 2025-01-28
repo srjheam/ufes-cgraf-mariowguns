@@ -15,11 +15,13 @@ class Character::Impl {
     float currJumpYAcc = .0f;
     bool jumping = false;
 
-    float gunAngleDeg = 0.0f;
+    //! [-45.0, +45.0]
+    GLdouble gunAngleDeg = 0.0f;
 
     CharacterDirection direction_ = RIGHT;
 
     Impl(ColorRgb body) : body_(body) { }
+    ~Impl() = default;
 
     void draw_legs(const Character &ref) const {
         glColor3f(1.0f, .0f, .0f); // rgb(255, 0, 0)
@@ -129,7 +131,7 @@ class Character::Impl {
         glPushMatrix();
             glTranslatef(ref.o_x() + ref.width() / 2, ref.o_y() + 2 * ref.height() / 5 + 3 * (ref.height() / 20), 0);
 
-            glRotatef(gunAngleDeg, 0, 0, 1);
+            glRotatef(direction_ == CharacterDirection::RIGHT ? gunAngleDeg : 180. - gunAngleDeg, 0, 0, 1);
 
             glColor3f(0.902f, 1.0f, 0.0f); // rgb(230, 255, 0)
 
@@ -205,6 +207,9 @@ void Character::draw() const {
     // but this proportion is too strange here, so I will swap the body and legs proportions
     //
 
+    if (hidden())
+        return;
+
     pimpl->draw_legs(*this);
 
     pimpl->draw_body(*this);
@@ -216,31 +221,36 @@ void Character::draw() const {
 
 void Character::aim(GLfloat dx, GLfloat dy) const {
     auto angle = (std::atan2(dy, dx) * 180 / M_PI);
+    auto angle2 = (std::atan2(dy, -dx) * 180 / M_PI);
 
-    std::cout << "angle: " << angle << std::endl;
+    if (direction() == RIGHT)
+        pimpl->gunAngleDeg = std::clamp((angle > -90. && angle < 90.) ? angle : angle2, -45.0, 45.0);
+    else
+    {
+        if (angle > 90.0)
+            pimpl->gunAngleDeg = std::clamp(angle2, 0.0, 45.0);
+        else if (angle < -90.0)
+            pimpl->gunAngleDeg = std::clamp(angle2, -45.0, 0.0);
+        else
+            pimpl->gunAngleDeg = std::clamp(angle, -45.0, 45.0);
+    }
+}
 
-    if (pimpl->direction_ == RIGHT && (angle > 90))
-        angle = 90 - (angle - 90);
-    else if (pimpl->direction_ == RIGHT && (angle < -90))
-        angle = 90 + (angle + 90);
-    else if (pimpl->direction_ == LEFT && (angle < 90))
-        angle = -90 - (angle - 90);
-    else if (pimpl->direction_ == LEFT && (angle > -90))
-        angle = -90 + (angle + 90);
-    
-    //if (pimpl->direction_ == RIGHT && (angle >= -45.0 || angle <= 45.0))
-    //    pimpl->gunAngleDeg = angle;
-    //else if (pimpl->direction_ == LEFT && (angle >= 135 || angle <= -135))
-    //    pimpl->gunAngleDeg = angle;
+Bullet Character::shoot() const {
+    auto angle = pimpl->gunAngleDeg * M_PI / 180.0;
+    auto dx = cos(angle);
+    auto dy = sin(angle);
 
-    if (pimpl->direction_ == RIGHT && angle > 45)
-        pimpl->gunAngleDeg = 45.0;
-    else if (pimpl->direction_ == RIGHT && angle < -45)
-        pimpl->gunAngleDeg = -45.0;
-    else if (pimpl->direction_ == LEFT && angle < 135)
-        pimpl->gunAngleDeg = 135.0;
-    else if (pimpl->direction_ == LEFT && angle > -135)
-        pimpl->gunAngleDeg = -135.0;
-    
-    std::cout << "gunAngleDeg: " << pimpl->gunAngleDeg << std::endl;
+    auto escalar_leave_x = 1;
+    if (direction() == LEFT) {
+        dx = -dx;
+        escalar_leave_x = (-1 * width() + dx) / dx;
+    }
+    else
+        escalar_leave_x = (1 * width() + dx) / dx;
+
+    auto x0 = (o_x() + width() / 2) + dx * escalar_leave_x;
+    auto y0 = (o_y() + height() / 2) + dy * escalar_leave_x;
+    auto size = height() / 10;
+    return Bullet(x0, y0, size, size, Vector(dx, dy), srutils::CHARACTER_SPEED_PX_S * 2);
 }

@@ -82,20 +82,20 @@ class Game::Impl {
             return true;
         }
 
-        if (status_ == GameStatus::WON)
-            return true;
+        if (arena_->player().ttl() < 0.0) // a.k.a. dead
+            status_ = GameStatus::OVER;
 
-        return false;
+        return status_ != GameStatus::RUNNING;
     }
 
-    bool moveCharacterAndCheckCollisions(const Character &character, GLdouble dt) {
-        character.colisions_reset();
+    bool moveEntityNCheckCollisions(const Entity &entity, GLdouble dt) {
+        entity.colisions_reset();
 
-        auto min_deltas_check_all_zero = [&character](const auto &entities, GLfloat &dx, GLfloat &dy) {
-            for (auto &entity : entities) {                
-                if (dynamic_cast<const Entity*>(&entity) == dynamic_cast<const Entity*>(&character)) continue;
+        auto min_deltas_check_all_zero = [&entity](const auto &entities, GLfloat &dx, GLfloat &dy) {
+            for (auto &obstacle : entities) {                
+                if (dynamic_cast<const Entity*>(&entity) == dynamic_cast<const Entity*>(&obstacle)) continue;
 
-                if (!character.aabb_isoverlapping_delta(entity, dx, dy))
+                if (!entity.aabb_isoverlapping_delta(obstacle, dx, dy))
                     continue;
 
                 //
@@ -113,16 +113,16 @@ class Game::Impl {
                 //     mas sim atravessa a plataforma.
                 //
 
-                if (character.aabb_isoverlapping_dx(entity, dx)) {
-                    character.colisions_set_last_x(entity);
+                if (entity.aabb_isoverlapping_dx(obstacle, dx)) {
+                    entity.colisions_set_last_x(obstacle);
                     //character.jump_end();
-                    dx = srutils::minabsf(dx, character.aabb_distanceof_x(entity));
+                    dx = srutils::minabsf(dx, entity.aabb_distanceof_x(obstacle));
                     //dx = .0f;
                 }
-                if (character.aabb_isoverlapping_dy(entity, dy)) {
-                    character.colisions_set_last_y(entity);
-                    character.jump_end();
-                    dy = srutils::minabsf(dy, character.aabb_distanceof_y(entity));
+                if (entity.aabb_isoverlapping_dy(obstacle, dy)) {
+                    entity.colisions_set_last_y(obstacle);
+                    //entity.jump_end();
+                    dy = srutils::minabsf(dy, entity.aabb_distanceof_y(obstacle));
                     //dy = .0f;
                 }
             }
@@ -135,35 +135,82 @@ class Game::Impl {
 
         GLfloat seconds = dt / 1000.0f;
         
-        GLfloat dx = character.vector_current().calc_dx_dt(seconds);
-        GLfloat dy = character.vector_current().calc_dy_dt(seconds);
+        GLfloat dx = entity.vector_current().calc_dx_dt(seconds);
+        GLfloat dy = entity.vector_current().calc_dy_dt(seconds);
 
         // colision entity
+        //min_deltas_check_all_zero(arena_->platforms(), dx, dy);
         min_deltas_check_all_zero(arena_->platforms(), dx, dy);
         min_deltas_check_all_zero(arena_->foes(), dx, dy);
         min_deltas_check_all_zero(arena_->players(), dx, dy);
 
         // colision walls
         auto &wall = arena_->background();
-        if (!character.aabb_isinsideof_dx(wall, dx)) {
-            character.colisions_set_last_x(wall);
+        if (!entity.aabb_isinsideof_dx(wall, dx)) {
+            entity.colisions_set_last_x(wall);
             //character.jump_end();
-            dx = srutils::minabsf(dx, character.aabb_insideof_x(wall, dx));
+            dx = srutils::minabsf(dx, entity.aabb_insideof_x(wall, dx));
             //dx = .0f;
         }
-        if (!character.aabb_isinsideof_dy(wall, dy)) {
-            character.colisions_set_last_y(wall);
-            character.jump_end();
-            dy = srutils::minabsf(dy, character.aabb_insideof_y(wall, dy));
+        if (!entity.aabb_isinsideof_dy(wall, dy)) {
+            entity.colisions_set_last_y(wall);
+            //entity.jump_end();
+            dy = srutils::minabsf(dy, entity.aabb_insideof_y(wall, dy));
             //dy = .0f;
         }
 
-        character.movement_translate(dx, dy);
+        entity.movement_translate(dx, dy);
 
         return dx != 0.0f || dy != 0.0f;
     }
 
-    void movePlayer(GLdouble dt) {
+    void controlBullets(GLdouble dt, GLdouble ct) {
+        auto &bullets = arena_->bullets();
+
+        const auto kill = [&bullets](const Entity *colision) {
+            if (colision != nullptr) {
+                if (dynamic_cast<const Character*>(colision) != nullptr) {
+                    auto &character = *dynamic_cast<const Character*>(colision);
+                    
+                    character.die();
+
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        for (auto it = bullets.begin(); it != bullets.end();)
+        {
+            auto &bullet = *it;
+
+            // remove dead bullets
+            if (bullet.ttl() < ct) {
+                it = bullets.erase(it);
+                continue;
+            }
+
+            const auto &bullet_v = bullet.direction();
+            bullet.vector_sum(bullet_v.direction_x(), bullet_v.direction_y(), characters_speed_px_s_ * 2);
+
+            // move bullets
+            moveEntityNCheckCollisions(bullet, dt);
+            bullet.vector_save_current_set_zero();
+
+            const auto &colisions = bullet.colisions_tuple();
+            const auto &colisions_x = std::get<0>(colisions);
+            const auto &colisions_y = std::get<1>(colisions);
+            if (kill(colisions_x) || kill(colisions_y)) {
+                it = bullets.erase(it);
+                continue;
+            }            
+
+            ++it;
+        }
+    }
+
+    void controlPlayer(GLdouble dt) {
+        // =============== movement
         // set up player movement vector
         const auto &player = arena_->player();
         if (keyboardKeyPressed_['a'] || keyboardKeyPressed_['A'])
@@ -185,6 +232,7 @@ class Game::Impl {
         // set up player gravity
         player.vector_sum(0.0f, -1.0f, gravity_px_s_);
 
+        // god move
         if (keyboardKeyPressed_['i'] || keyboardKeyPressed_['I']) {
             player.vector_current().set_zero();
             player.vector_sum(0.0f, 1.0f, characters_speed_px_s_ * 5);
@@ -202,15 +250,36 @@ class Game::Impl {
             player.vector_sum(1.0f, 0.0f, characters_speed_px_s_ * 5);
         }
 
-        moveCharacterAndCheckCollisions(player, dt);
+        moveEntityNCheckCollisions(player, dt);
+        if (player.colisions_last_left() != nullptr || player.colisions_last_right() != nullptr)
+            player.jump_end();
+
         player.vector_save_current_set_zero();
 
         if (player.colisions_last_right() == &arena_->background())
             status_ = GameStatus::WON;
+
+        // ====================== gun
+        if (mouseButtonPressed_[GLUT_LEFT_BUTTON]) {
+            auto bullet = player.shoot();
+            bullet.ttl(dt + 60 * 1000);
+            arena_->addBullet(std::move(bullet));
+        }
     }
 
-    void moveFoes(GLdouble dt) {
-        for (const auto &foe : arena_->foes()) {
+    void controlFoes(GLdouble dt) {
+        auto &foes = arena_->foes();
+
+        for (auto it = foes.begin(); it != foes.end();)
+        {
+            auto &foe = *it;
+
+            // remove dead foes
+            if (foe.ttl() < 0.0) {
+                it = foes.erase(it);
+                continue;
+            }
+
             if (foe.direction() == CharacterDirection::LEFT) {
                 foe.vector_sum(-1.0f, 0.0f, characters_speed_px_s_);
             } else {
@@ -236,16 +305,17 @@ class Game::Impl {
                         foe.direction(CharacterDirection::LEFT);
                     foe.vector_current().set_vector(dx, dy);
                 }
-
             }
 
-            moveCharacterAndCheckCollisions(foe, dt);
+            moveEntityNCheckCollisions(foe, dt);
             foe.vector_save_current_set_zero();
 
             if (foe.direction() == CharacterDirection::LEFT && foe.colisions_last_left() != nullptr)
                 foe.direction(CharacterDirection::RIGHT);
             else if (foe.direction() == CharacterDirection::RIGHT && foe.colisions_last_right() != nullptr)
                 foe.direction(CharacterDirection::LEFT);
+
+            ++it;
         }
     }
 
@@ -295,6 +365,8 @@ bool Game::start() {
 }
 
 void Game::display(void) {
+    /* selecionar cor de fundo (azul rgb(158,158,255)) */
+    glClearColor(0.620f, 0.620f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // a model-view está ativa
@@ -307,6 +379,27 @@ void Game::display(void) {
         const char* twink = "You win!";
         for (const char* c = twink; *c != '\0'; c++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+
+        glColor3f(1.f, 1.f, 1.f); // rgb(255, 255, 255)
+        glRasterPos2f(pimpl->windowSideLength_/2.0f - 60, 10);
+        const char* tr = "Press R to restart";
+        for (const char* c = tr; *c != '\0'; c++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+
+        glutSwapBuffers();
+
+        return;
+    }
+    else if (pimpl->status_ == GameStatus::OVER) {
+        /* selecionar cor de fundo (azul rgb(46, 42, 67)) */
+        glClearColor(0.180f, 0.165f, .263f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glColor3f(.741f, .059f, .059f); // rgb(189, 15, 15)
+        glRasterPos2f(pimpl->windowSideLength_/2.0f - 40, pimpl->windowSideLength_/2.0f);
+        const char* tgameover = "SE FODEU";
+        for (const char* c = tgameover; *c != '\0'; c++)
+            glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
 
         glColor3f(1.f, 1.f, 1.f); // rgb(255, 255, 255)
         glRasterPos2f(pimpl->windowSideLength_/2.0f - 60, 10);
@@ -357,9 +450,11 @@ void Game::idle() {
     GLdouble dt = currentTime - previousTime;
     previousTime = currentTime;
 
-    pimpl->movePlayer(dt);
+    pimpl->controlBullets(dt, currentTime);
 
-    pimpl->moveFoes(dt);
+    pimpl->controlPlayer(dt);
+
+    pimpl->controlFoes(dt);
 
     glutPostRedisplay();
 }

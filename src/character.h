@@ -7,6 +7,7 @@
 
 #include "entity.h"
 #include "color_rgb.h"
+#include "bullet.h"
 
 enum CharacterDirection { RIGHT, LEFT };
 
@@ -24,7 +25,7 @@ class Character : public Entity {
     Character(Character&&) noexcept;
     Character& operator=(Character&&) noexcept = default;
     
-    virtual ~Character() override;
+    ~Character() override;
 
     const enum CharacterDirection &direction() const;
     void direction(const enum CharacterDirection &direction) const;
@@ -39,6 +40,7 @@ class Character : public Entity {
     void jump_end() const;
 
     void aim(GLfloat dx, GLfloat dy) const;
+    Bullet shoot() const;
 
     void draw() const;
 };

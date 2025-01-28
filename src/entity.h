@@ -4,6 +4,7 @@
 #include <GL/gl.h>
 
 #include <memory>
+#include <tuple>
 
 #include "vector.h"
 
@@ -14,10 +15,7 @@ class Entity {
 
   public:
     GLfloat o_x() const;
-    void o_x(GLfloat o_x) const;
-
     GLfloat o_y() const;
-    void o_y(GLfloat o_y) const;
 
     const int &height() const;
     const int &width() const;
@@ -28,6 +26,8 @@ class Entity {
     const bool &hidden() const;
     void hidden(const bool &hidden) const;
 
+    void die() const;
+
     virtual void movement_translate(GLfloat dx, GLfloat dy) const;
 
     const Vector &vector_last() const;
@@ -37,6 +37,8 @@ class Entity {
     void vector_set_direction(GLfloat dx, GLfloat dy) const;
     
     void vector_save_current_set_zero() const;
+
+    void vector_save_current_set(const Vector &vector) const;
   
     //! Vector must be normalized
     void vector_sum(GLfloat vx, GLfloat vy, GLfloat velocity) const;
@@ -73,6 +75,8 @@ class Entity {
     const Entity *colisions_last_bottom() const;
     const Entity *colisions_last_left() const;
     const Entity *colisions_last_right() const;
+
+    const std::tuple<const Entity*, const Entity*> colisions_tuple() const;
 
     void colisions_set_last_x(const Entity &entity) const;
     void colisions_set_last_y(const Entity &entity) const;
